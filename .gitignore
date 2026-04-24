@@ -1,0 +1,26 @@
+# Compiled artifacts
+/target/
+
+# Cargo lockfile
+# Keep Cargo.lock for binaries; ignore for libraries if you prefer reproducibility control
+# Cargo.lock
+
+# Backup files
+**/*.rs.bk
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# IDEs / editors
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
