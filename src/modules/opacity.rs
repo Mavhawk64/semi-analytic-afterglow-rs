@@ -30,7 +30,10 @@ impl OpacityTable {
     /// - second line: 50 photon energies
     /// - third line: comment
     /// - next 201 lines: opacity rows
-    pub fn init_opacity_table(filename: &str) -> std::io::Result<Self> {
+    ///
+    /// Previously named: `init_opac_table` in Fortran, but renamed to
+    /// `from_file` in Rust since it reads the data from a file
+    pub fn from_file(filename: &str) -> std::io::Result<Self> {
         let file = File::open(filename)?;
         let mut lines = BufReader::new(file).lines();
 
@@ -287,11 +290,10 @@ mod tests {
     }
 
     #[test]
-    fn init_opacity_table_loads_repo_opacity_table() {
+    fn from_file_loads_repo_opacity_table() {
         let path = format!("{}/opacity-table.dat", env!("CARGO_MANIFEST_DIR"));
 
-        let table =
-            OpacityTable::init_opacity_table(&path).expect("failed to load opacity-table.dat");
+        let table = OpacityTable::from_file(&path).expect("failed to load opacity-table.dat");
 
         assert_eq!(table.opac_phot_table.len(), OPAC_N_PHOT);
         assert_eq!(table.opac_table.len(), OPAC_N_Z);
