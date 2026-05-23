@@ -24,3 +24,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.swp
+
+# Diff files
+*.diff

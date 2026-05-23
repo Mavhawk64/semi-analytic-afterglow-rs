@@ -31,7 +31,7 @@ Take a look at the [original Fortran code](https://github.fit.edu/GammaRayBurstA
 
 ## INPUT / DRIVER
 
-- [ ] data_input
+- [x] data_input
 - [ ] parse sample_saa_in_*.txt
 - [ ] basic CLI execution
 
@@ -39,29 +39,35 @@ Take a look at the [original Fortran code](https://github.fit.edu/GammaRayBurstA
 
 ## NUMERICS
 
-- [ ] set_x_array
-- [ ] set_x_array_1d
-- [ ] set_em_step_sizes
-- [ ] dist_rebin
+- [x] set_x_array
+- [x] set_x_array_1d
+- [x] set_x_array_simpsons
+- [x] set_em_step_sizes
+- [x] dist_rebin
 
 ---
 
 ## PHYSICS
 
-- [ ] photon_syn
-- [ ] photon_ssc
-- [ ] photon_alph
-- [ ] calc_syn_fx
-- [ ] calc_ssa_x_f
-- [ ] calc_epse
+- [x] photon_syn
+- [x] photon_ssc
+- [x] photon_alph
+- [x] calc_syn_fx
+- [x] calc_ssa_x_f
+- [x] calc_epse
+- [x] set_elec_dist
+- [x] rad_transfer_diffeq
 
 ---
 
-## SOLVERS
+## SOLVERS / SPECIAL FUNCTIONS
 
-- [ ] brents_minimum
+- [x] brents_minimum
 - [x] newtons_method
-- [ ] bw_euler_stepper
+- [x] bw_euler_stepper
+- [x] bessik
+- [x] beschb
+- [x] chebev_subr
 
 ---
 
