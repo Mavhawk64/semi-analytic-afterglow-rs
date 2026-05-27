@@ -18,6 +18,11 @@ pub fn dist_rebin(
     elec_gam_array: &[f64],
 ) -> Vec<f64> {
     // Initialize variables
+    // NOTE: j_orig is 1-based, matching the Fortran exactly.
+    //   elec_dist(i)       in Fortran  =  elec_dist[i - 1]       in Rust
+    //   elec_dist_rebin(i) in Fortran  =  elec_dist_rebin[i - 1] in Rust
+    //   elec_gam_cooled(i) in Fortran  =  elec_gam_cooled[i]     in Rust  (both 0-based boundary arrays)
+    //   elec_gam_array(i)  in Fortran  =  elec_gam_array[i]      in Rust  (both 0-based boundary arrays)
     let mut j_orig = 1usize;
 
     let mut elec_dist_rebin = vec![1.0e-99; num_dp];
@@ -25,12 +30,15 @@ pub fn dist_rebin(
     // The first bin is a gimme: since array entry 0 does not cool, the first
     // cooled bin is guaranteed to rebin entirely within the first bin of the
     // original Lorentz factor array
+    //   Fortran: elec_dist(1) -> Rust: elec_dist[0]
+    //   Fortran: elec_dist_rebin(1) -> Rust: elec_dist_rebin[0]
     if elec_dist[0] > 1.0e-55 {
         elec_dist_rebin[0] += elec_dist[0];
     }
 
     // Loop over bins in the cooled array and place them into the rebinned dist
-    for i_cool in 1..num_dp {
+    //   Fortran: do i_cool = 2, num_dp
+    for i_cool in 2..=num_dp {
         // Handle things differently if the current cooled bin falls entirely
         // within the uncooled bin under consideration.
         //
@@ -40,13 +48,15 @@ pub fn dist_rebin(
         // NO:
         //   Need to loop over bins in original Lorentz factor array until we
         //   have covered entirety of cooled array
+        //   Fortran: elec_gam_cooled(i_cool) .le. elec_gam_array(j_orig)
         if elec_gam_cooled[i_cool] <= elec_gam_array[j_orig] {
-            if elec_dist[i_cool] > 1.0e-55 {
-                let elecs_to_add = elec_dist[i_cool];
+            if elec_dist[i_cool - 1] > 1.0e-55 {
+                let elecs_to_add = elec_dist[i_cool - 1];
 
                 elec_dist_rebin[j_orig - 1] += elecs_to_add;
             }
         } else {
+            //   Fortran: do while( elec_gam_array(j_orig) .le. elec_gam_cooled(i_cool) )
             while elec_gam_array[j_orig] <= elec_gam_cooled[i_cool] {
                 let rebin_bottom = elec_gam_cooled[i_cool - 1].max(elec_gam_array[j_orig - 1]);
 
@@ -58,8 +68,8 @@ pub fn dist_rebin(
                 //        |^^^^^^^^^^^^^^^^^^^|       elec_gam_cooled
                 //  |_________|_________|_________|   elec_gam_array
                 //         +++ +++++++++              <-- these parts
-                if elec_dist[i_cool] > 1.0e-55 {
-                    let elecs_to_add = elec_dist[i_cool] * (rebin_top - rebin_bottom)
+                if elec_dist[i_cool - 1] > 1.0e-55 {
+                    let elecs_to_add = elec_dist[i_cool - 1] * (rebin_top - rebin_bottom)
                         / (elec_gam_cooled[i_cool] - elec_gam_cooled[i_cool - 1]);
 
                     elec_dist_rebin[j_orig - 1] += elecs_to_add;
@@ -75,8 +85,8 @@ pub fn dist_rebin(
             //                       +++++ <-- this part
             //
             // To correct for that, add the missing electrons manually
-            if elec_dist[i_cool] > 1.0e-55 {
-                let elecs_to_add = elec_dist[i_cool]
+            if elec_dist[i_cool - 1] > 1.0e-55 {
+                let elecs_to_add = elec_dist[i_cool - 1]
                     * (elec_gam_cooled[i_cool] - elec_gam_array[j_orig - 1])
                     / (elec_gam_cooled[i_cool] - elec_gam_cooled[i_cool - 1]);
 
@@ -96,8 +106,10 @@ mod tests {
     fn preserves_first_bin_when_uncooked() {
         let num_dp = 4;
 
-        let elec_gam_cooled = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-        let elec_gam_array = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        // Boundary arrays have extra entries beyond num_dp, matching
+        // Fortran's dimension(0:n_dp) where n_dp >> num_dp
+        let elec_gam_cooled = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
+        let elec_gam_array = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
 
         let elec_dist = vec![10.0, 0.0, 0.0, 0.0];
 
@@ -110,8 +122,9 @@ mod tests {
     fn preserves_total_number_of_electrons() {
         let num_dp = 4;
 
-        let elec_gam_cooled = vec![1.0, 2.2, 3.4, 4.6, 5.8];
-        let elec_gam_array = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        // Cooled values are always <= original (cooling reduces Lorentz factors)
+        let elec_gam_cooled = vec![1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0];
+        let elec_gam_array = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
 
         let elec_dist = vec![1.0, 2.0, 3.0, 4.0];
 
@@ -130,8 +143,9 @@ mod tests {
     fn rebinned_distribution_is_finite() {
         let num_dp = 4;
 
-        let elec_gam_cooled = vec![1.0, 2.2, 3.4, 4.6, 5.8];
-        let elec_gam_array = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        // Cooled values are always <= original (cooling reduces Lorentz factors)
+        let elec_gam_cooled = vec![1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0];
+        let elec_gam_array = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
 
         let elec_dist = vec![1.0, 2.0, 3.0, 4.0];
 
@@ -144,8 +158,8 @@ mod tests {
     fn handles_empty_bins_correctly() {
         let num_dp = 4;
 
-        let elec_gam_cooled = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-        let elec_gam_array = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        let elec_gam_cooled = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
+        let elec_gam_array = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
 
         let elec_dist = vec![0.0, 0.0, 5.0, 0.0];
 

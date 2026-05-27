@@ -1,0 +1,104 @@
+Grid arrays initialized.  time =  9.30e-3 sec
+
+ 9.45e-1 sec:  Waiting to write.  Rad transfer complete for i_tm = 1
+ 9.46e-1 sec:  Rad transfer complete for i_tm = 1; Gam_0 = 200.48; t_obs =    1.000e1
+  1.90e0 sec:  Waiting to write.  Rad transfer complete for i_tm = 2
+  1.90e0 sec:  Rad transfer complete for i_tm = 2; Gam_0 = 183.66; t_obs =    1.263e1
+  2.89e0 sec:  Waiting to write.  Rad transfer complete for i_tm = 3
+  2.89e0 sec:  Rad transfer complete for i_tm = 3; Gam_0 = 168.26; t_obs =    1.595e1
+  3.84e0 sec:  Waiting to write.  Rad transfer complete for i_tm = 4
+  3.84e0 sec:  Rad transfer complete for i_tm = 4; Gam_0 = 154.15; t_obs =    2.015e1
+  4.79e0 sec:  Waiting to write.  Rad transfer complete for i_tm = 5
+  4.79e0 sec:  Rad transfer complete for i_tm = 5; Gam_0 = 141.22; t_obs =    2.546e1
+  5.75e0 sec:  Waiting to write.  Rad transfer complete for i_tm = 6
+  5.75e0 sec:  Rad transfer complete for i_tm = 6; Gam_0 = 129.38; t_obs =    3.215e1
+  6.70e0 sec:  Waiting to write.  Rad transfer complete for i_tm = 7
+  6.70e0 sec:  Rad transfer complete for i_tm = 7; Gam_0 = 118.53; t_obs =    4.061e1
+  7.65e0 sec:  Waiting to write.  Rad transfer complete for i_tm = 8
+  7.65e0 sec:  Rad transfer complete for i_tm = 8; Gam_0 = 108.59; t_obs =    5.130e1
+  8.62e0 sec:  Waiting to write.  Rad transfer complete for i_tm = 9
+  8.62e0 sec:  Rad transfer complete for i_tm = 9; Gam_0 =  99.48; t_obs =    6.480e1
+  9.57e0 sec:  Waiting to write.  Rad transfer complete for i_tm = 10
+  9.57e0 sec:  Rad transfer complete for i_tm = 10; Gam_0 =  91.14; t_obs =    8.185e1
+  1.05e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 11
+  1.05e1 sec:  Rad transfer complete for i_tm = 11; Gam_0 =  83.49; t_obs =    1.034e2
+  1.15e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 12
+  1.15e1 sec:  Rad transfer complete for i_tm = 12; Gam_0 =  76.49; t_obs =    1.306e2
+  1.24e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 13
+  1.24e1 sec:  Rad transfer complete for i_tm = 13; Gam_0 =  70.07; t_obs =    1.649e2
+  1.33e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 14
+  1.33e1 sec:  Rad transfer complete for i_tm = 14; Gam_0 =  64.20; t_obs =    2.083e2
+  1.43e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 15
+  1.43e1 sec:  Rad transfer complete for i_tm = 15; Gam_0 =  58.81; t_obs =    2.632e2
+  1.52e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 16
+  1.52e1 sec:  Rad transfer complete for i_tm = 16; Gam_0 =  53.88; t_obs =    3.324e2
+  1.62e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 17
+  1.62e1 sec:  Rad transfer complete for i_tm = 17; Gam_0 =  49.36; t_obs =    4.199e2
+  1.71e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 18
+  1.71e1 sec:  Rad transfer complete for i_tm = 18; Gam_0 =  45.22; t_obs =    5.304e2
+  1.81e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 19
+  1.81e1 sec:  Rad transfer complete for i_tm = 19; Gam_0 =  41.43; t_obs =    6.699e2
+  1.90e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 20
+  1.90e1 sec:  Rad transfer complete for i_tm = 20; Gam_0 =  37.96; t_obs =    8.462e2
+  2.00e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 21
+  2.00e1 sec:  Rad transfer complete for i_tm = 21; Gam_0 =  34.77; t_obs =    1.069e3
+  2.09e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 22
+  2.09e1 sec:  Rad transfer complete for i_tm = 22; Gam_0 =  31.86; t_obs =    1.350e3
+  2.19e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 23
+  2.19e1 sec:  Rad transfer complete for i_tm = 23; Gam_0 =  29.18; t_obs =    1.705e3
+  2.28e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 24
+  2.28e1 sec:  Rad transfer complete for i_tm = 24; Gam_0 =  26.74; t_obs =    2.154e3
+  2.37e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 25
+  2.37e1 sec:  Rad transfer complete for i_tm = 25; Gam_0 =  24.49; t_obs =    2.721e3
+  2.47e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 26
+  2.47e1 sec:  Rad transfer complete for i_tm = 26; Gam_0 =  22.44; t_obs =    3.437e3
+  2.56e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 27
+  2.56e1 sec:  Rad transfer complete for i_tm = 27; Gam_0 =  20.56; t_obs =    4.341e3
+  2.65e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 28
+  2.65e1 sec:  Rad transfer complete for i_tm = 28; Gam_0 =  18.83; t_obs =    5.483e3
+  2.75e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 29
+  2.75e1 sec:  Rad transfer complete for i_tm = 29; Gam_0 =  17.25; t_obs =    6.926e3
+  2.84e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 30
+  2.84e1 sec:  Rad transfer complete for i_tm = 30; Gam_0 =  15.81; t_obs =    8.748e3
+  2.93e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 31
+  2.93e1 sec:  Rad transfer complete for i_tm = 31; Gam_0 =  14.48; t_obs =    1.105e4
+  3.03e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 32
+  3.03e1 sec:  Rad transfer complete for i_tm = 32; Gam_0 =  13.27; t_obs =    1.396e4
+  3.12e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 33
+  3.12e1 sec:  Rad transfer complete for i_tm = 33; Gam_0 =  12.15; t_obs =    1.763e4
+  3.21e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 34
+  3.21e1 sec:  Rad transfer complete for i_tm = 34; Gam_0 =  11.13; t_obs =    2.227e4
+  3.30e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 35
+  3.30e1 sec:  Rad transfer complete for i_tm = 35; Gam_0 =  10.20; t_obs =    2.813e4
+  3.40e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 36
+  3.40e1 sec:  Rad transfer complete for i_tm = 36; Gam_0 =   9.35; t_obs =    3.553e4
+  3.49e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 37
+  3.49e1 sec:  Rad transfer complete for i_tm = 37; Gam_0 =   8.56; t_obs =    4.488e4
+  3.58e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 38
+  3.58e1 sec:  Rad transfer complete for i_tm = 38; Gam_0 =   7.84; t_obs =    5.669e4
+  3.67e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 39
+  3.67e1 sec:  Rad transfer complete for i_tm = 39; Gam_0 =   7.19; t_obs =    7.160e4
+  3.77e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 40
+  3.77e1 sec:  Rad transfer complete for i_tm = 40; Gam_0 =   6.58; t_obs =    9.044e4
+  3.86e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 41
+  3.86e1 sec:  Rad transfer complete for i_tm = 41; Gam_0 =   6.03; t_obs =    1.142e5
+  3.95e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 42
+  3.95e1 sec:  Rad transfer complete for i_tm = 42; Gam_0 =   5.53; t_obs =    1.443e5
+  4.04e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 43
+  4.04e1 sec:  Rad transfer complete for i_tm = 43; Gam_0 =   5.06; t_obs =    1.823e5
+  4.14e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 44
+  4.14e1 sec:  Rad transfer complete for i_tm = 44; Gam_0 =   4.64; t_obs =    2.302e5
+  4.23e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 45
+  4.23e1 sec:  Rad transfer complete for i_tm = 45; Gam_0 =   4.25; t_obs =    2.908e5
+  4.32e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 46
+  4.32e1 sec:  Rad transfer complete for i_tm = 46; Gam_0 =   3.89; t_obs =    3.673e5
+  4.41e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 47
+  4.41e1 sec:  Rad transfer complete for i_tm = 47; Gam_0 =   3.57; t_obs =    4.640e5
+  4.50e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 48
+  4.50e1 sec:  Rad transfer complete for i_tm = 48; Gam_0 =   3.27; t_obs =    5.860e5
+  4.60e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 49
+  4.60e1 sec:  Rad transfer complete for i_tm = 49; Gam_0 =   2.99; t_obs =    7.402e5
+  4.69e1 sec:  Waiting to write.  Rad transfer complete for i_tm = 50
+  4.69e1 sec:  Rad transfer complete for i_tm = 50; Gam_0 =   2.74; t_obs =    9.350e5
+
+Emission calculated!  time =   4.69e1 sec

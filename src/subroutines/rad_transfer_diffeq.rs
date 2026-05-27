@@ -219,7 +219,7 @@ pub fn rad_transfer_diffeq(input: RadTransferInput<'_>) -> Result<(), RadTransfe
     let bound_check = if offaxis {
         s != s_far && s != s_near
     } else {
-        i_endpoint == 0 || k_x == 1
+        i_endpoint == 0 || k_x == 0
     };
 
     let y = if bound_check {

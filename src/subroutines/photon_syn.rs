@@ -152,8 +152,8 @@ pub fn photon_syn(
 
             // Interpolate between values of syn_F to get x_F. If xxx < syn_x(1),
             // it falls in the power-law part of the function F(x)
-            let x_f = if xxx < globals.syn_x[0] {
-                (xxx * globals.o_o_sone).powf(THIRD) * globals.syn_f[0]
+            let x_f = if xxx < globals.syn_x[1] {
+                (xxx * globals.o_o_sone).powf(THIRD) * globals.syn_f[1]
             } else {
                 globals.syn_f[i_x_lo]
                     + (xxx - globals.syn_x[i_x_lo])
@@ -174,6 +174,7 @@ pub fn photon_syn(
             if tmp_add > 1.0e-60 {
                 syn_jnu[m_ph - 1] += tmp_add;
             }
+
         }
 
         //-----------------------------------------------------------------------

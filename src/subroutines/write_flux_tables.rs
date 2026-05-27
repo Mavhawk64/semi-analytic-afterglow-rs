@@ -23,14 +23,14 @@ pub fn write_flux_tables<W: Write>(
     writeln!(
         writer,
         "i_tm = {:3};  t_obs = {:12.3e}",
-        i_tm, globals.t_obs_array[i_tm]
+        i_tm + 1, globals.t_obs_array[i_tm]
     )?;
 
     for m_ph in 0..globals.num_ph {
         writeln!(
             writer,
             "{:4}{:4}{:14.4e}{:14.4e}{:13.4e}{:14.4e}",
-            i_tm,
+            i_tm + 1,
             m_ph + 1,
             (globals.phot_en_cgs[m_ph] * ERG_TO_EV).log10(),
             (globals.phot_en_cgs[m_ph] / XH).log10(),
@@ -78,7 +78,7 @@ mod tests {
 
         let output = String::from_utf8(buffer).expect("output should be valid UTF-8");
 
-        assert!(output.contains("i_tm =   0;  t_obs ="));
+        assert!(output.contains("i_tm =   1;  t_obs ="));
     }
 
     #[test]
@@ -94,8 +94,8 @@ mod tests {
 
         let output = String::from_utf8(buffer).expect("output should be valid UTF-8");
 
-        assert!(output.contains("   0   1"));
-        assert!(output.contains("   0   2"));
+        assert!(output.contains("   1   1"));
+        assert!(output.contains("   1   2"));
     }
 
     #[test]
