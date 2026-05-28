@@ -935,8 +935,7 @@ pub fn run() -> Result<(), SaafterglowSimpsonsError> {
         writeln!(
             out_writer,
             "{:8.2e} sec:  Waiting to write.  Rad transfer complete for i_tm = {}",
-            wall_time,
-            i_tm
+            wall_time, i_tm
         )?;
 
         // Write the identifier for this time step to the output file
@@ -953,19 +952,14 @@ pub fn run() -> Result<(), SaafterglowSimpsonsError> {
         if inputs.do_progress_log {
             println!(
                 "Rad transfer complete for i_tm = {}; Gam_0 = {:6.2}; t_obs = {:10.3e}",
-                i_tm,
-                gam_los,
-                globals.t_obs_array[i_tm]
+                i_tm, gam_los, globals.t_obs_array[i_tm]
             );
         }
 
         writeln!(
             out_writer,
             "{:8.2e} sec:  Rad transfer complete for i_tm = {}; Gam_0 = {:6.2}; t_obs = {:10.3e}",
-            wall_time,
-            i_tm,
-            gam_los,
-            globals.t_obs_array[i_tm]
+            wall_time, i_tm, gam_los, globals.t_obs_array[i_tm]
         )?;
     }
 
