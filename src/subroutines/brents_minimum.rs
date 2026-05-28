@@ -75,16 +75,53 @@ where
     let fc = func_name(cx, i_params, r_params);
 
     if !fa.is_finite() {
+        dbg!(
+            "Non-finite function value (fa) at initial points: ax = {}, fa = {}, bx = {}, fb = {}, cx = {}, fc = {}",
+            ax,
+            fa,
+            bx,
+            fb,
+            cx,
+            fc
+        );
         return Err(BrentError::NonFiniteValue { x: ax, fx: fa });
     }
     if !fb.is_finite() {
+        dbg!(
+            "Non-finite function value (fb) at initial points: ax = {}, fa = {}, bx = {}, fb = {}, cx = {}, fc = {}",
+            ax,
+            fa,
+            bx,
+            fb,
+            cx,
+            fc
+        );
         return Err(BrentError::NonFiniteValue { x: bx, fx: fb });
     }
     if !fc.is_finite() {
+        dbg!(
+            "Non-finite function value (fc) at initial points: ax = {}, fa = {}, bx = {}, fb = {}, cx = {}, fc = {}",
+            ax,
+            fa,
+            bx,
+            fb,
+            cx,
+            fc
+        );
         return Err(BrentError::NonFiniteValue { x: cx, fx: fc });
     }
 
     if !((ax < bx && bx < cx) || (cx < bx && bx < ax)) || !(fb <= fa && fb <= fc) {
+        dbg!(
+            "Invalid bracket: ax = {}, fa = {}, bx = {}, fb = {}, cx = {}, fc = {}",
+            ax,
+            fa,
+            bx,
+            fb,
+            cx,
+            fc
+        );
+        // comment this out to mimic what we have in the fortran code
         return Err(BrentError::InvalidBracket);
     }
 

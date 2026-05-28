@@ -128,6 +128,8 @@ def compare_seds() -> None:
 
     if len(rust_ph) != len(f90_ph):
         print("FAILED: photon energy counts differ")
+    elif len(rust_ph) == 0:
+        print("No photon energy header found (simpsons mode) — skipping")
     else:
         max_ph_diff = max(abs(a - b) for a, b in zip(rust_ph, f90_ph))
         print(f"Max photon energy abs diff: {max_ph_diff:.6e}")

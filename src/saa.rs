@@ -937,7 +937,7 @@ pub fn run() -> Result<(), SaaError> {
         )?;
 
         // Write the identifier for this time step to the output file
-        write_flux_tables(&mut sed_writer, i_tm, &f_nu, &nu_fnu, &globals)?;
+        write_flux_tables(&mut sed_writer, i_tm, &f_nu, &nu_fnu, &globals, true)?;
 
         //------------------------------------------------------------------------
         // nu*Fnu written to file
