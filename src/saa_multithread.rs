@@ -957,13 +957,6 @@ pub fn run() -> Result<(), SaaError> {
             );
         }
 
-        writeln!(
-            out_writer,
-            "{:8.2e} sec:  Waiting to write.  Rad transfer complete for i_tm = {}",
-            wall_time,
-            result.i_tm + 1
-        )?;
-
         // Write the identifier for this time step to the output file
         write_flux_tables(
             &mut sed_writer,
