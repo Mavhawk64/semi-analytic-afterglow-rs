@@ -1,22 +1,69 @@
-# Compiled artifacts
+# =========================
+# Build artifacts
+# =========================
 /target/
 
-# Cargo lockfile
-# Keep Cargo.lock for binaries; ignore for libraries if you prefer reproducibility control
+# Compiled modules / objects
+*.mod
+*.o
+*.obj
+*.pdb
+*__genmod.f90
+
+# Compiled executables
+*.exe
+saa
+saa_AIPanther
+saa_AIpanther
+saafterglow_simpsons
+saafterglow2
+
+# =========================
+# Rust
+# =========================
+
+# Keep Cargo.lock for binaries.
+# Uncomment below if this is intended to behave like a library.
 # Cargo.lock
 
 # Backup files
 **/*.rs.bk
 
-# MacOS
-.DS_Store
+# =========================
+# Python
+# =========================
+__pycache__/
 
-# Windows
-Thumbs.db
+# =========================
+# Output / generated data
+# =========================
+saa_out.dat
+saa_SEDS.dat
+saa_SEDs.dat
+outlog*.txt
 
-# IDEs / editors
-.vscode/
-.idea/
+# =========================
+# Input / runtime data
+# =========================
+epse*epsB*/**
+to-run/
+run-data/
+saa_input_*.dat
+saa_in.dat
+
+# =========================
+# Documentation
+# =========================
+doc/
+
+# =========================
+# Testing / scratch
+# =========================
+output/
+chunk_*/
+
+# Diff files
+*.diff
 
 # Logs
 *.log
@@ -25,5 +72,18 @@ Thumbs.db
 *.tmp
 *.swp
 
-# Diff files
-*.diff
+# =========================
+# IDEs / editors
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# OS-specific files
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Fortran runtime output files
+fort.*

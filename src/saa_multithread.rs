@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::env;
 use std::fs::File;
 use std::io::{BufWriter, Read, Write};
@@ -90,6 +91,14 @@ impl From<NewtonError> for SaaError {
     fn from(err: NewtonError) -> Self {
         SaaError::Newton(err)
     }
+}
+
+#[derive(Debug)]
+struct TimeStepResult {
+    i_tm: usize,
+    gam_los: f64,
+    f_nu: Vec<f64>,
+    nu_fnu: Vec<f64>,
 }
 
 pub fn run() -> Result<(), SaaError> {
@@ -597,231 +606,178 @@ pub fn run() -> Result<(), SaaError> {
     //   of Lorentz factor.  This value separates y_min and y_max.
     let eq_a22_split = (5.0 - k_cbm).powf(1.0 / (k_cbm - 4.0));
 
-    for i_tm in 0..inputs.n_tm {
-        //-----------------------------------------------------------------------
-        // For this time step, compute the near and far limits for the
-        //   radiative transfer integration we will do in the next loop.
-        //
-        //   1. Recover state of forward shock along jet axis for this observer time
-        //   2. Compute quantities related to the edge of the egg: R_perp_max
-        //      in units of R_LOS, and y_crit (the value where s_far switches from
-        //      positive to negative)
-        //   3. Loop over values of x, finding y_max and y_min; then convert
-        //      them to s_far and s_near
-        //-----------------------------------------------------------------------
+    let mut results: Vec<TimeStepResult> = (0..inputs.n_tm)
+        .into_par_iter()
+        .map(|i_tm| -> Result<TimeStepResult, SaaError> {
+            //-----------------------------------------------------------------------
+            // For this time step, compute the near and far limits for the
+            //   radiative transfer integration we will do in the next loop.
+            //
+            //   1. Recover state of forward shock along jet axis for this observer time
+            //   2. Compute quantities related to the edge of the egg: R_perp_max
+            //      in units of R_LOS, and y_crit (the value where s_far switches from
+            //      positive to negative)
+            //   3. Loop over values of x, finding y_max and y_min; then convert
+            //      them to s_far and s_near
+            //-----------------------------------------------------------------------
 
-        // (1) Grab state of jet axis from previous arrays
-        //-----------------------------------------------------------------------
-        let r_los = globals.r_los_array[i_tm];
-        let gam_los = globals.gam_los_array[i_tm];
+            // (1) Grab state of jet axis from previous arrays
+            //-----------------------------------------------------------------------
+            let r_los = globals.r_los_array[i_tm];
+            let gam_los = globals.gam_los_array[i_tm];
 
-        // (2) Compute R_perp_max and y_crit
-        //------------------------------------------------------------------------
-        // R_perp_max, in units of R_LOS, from GS2002 Eq. (A21)
-        let r_perp_max = (5.0 - k_cbm).powf(0.5 * (k_cbm - 5.0) / (4.0 - k_cbm)) / gam_los;
+            // (2) Compute R_perp_max and y_crit
+            //------------------------------------------------------------------------
+            // R_perp_max, in units of R_LOS, from GS2002 Eq. (A21)
+            let r_perp_max = (5.0 - k_cbm).powf(0.5 * (k_cbm - 5.0) / (4.0 - k_cbm)) / gam_los;
 
-        // Value of y when mu = 0, since we will need that to figure out when our
-        //   limits of integration include negative s values
-        let mut i_params = [0i32; 7];
-        let mut r_params = [0.0f64; 7];
+            // Value of y when mu = 0, since we will need that to figure out when our
+            //   limits of integration include negative s values
+            let mut i_params = [0i32; 7];
+            let mut r_params = [0.0f64; 7];
 
-        i_params[0] = 2; // To compute y for fixed mu
-        i_params[4] = 1; // on-axis
-        r_params[0] = 0.0; // mu
-        r_params[1] = gam_los;
+            i_params[0] = 2; // To compute y for fixed mu
+            i_params[4] = 1; // on-axis
+            r_params[0] = 0.0; // mu
+            r_params[1] = gam_los;
 
-        let y_crit = newtons_method(
-            |y_input, i_params, r_params| gps_egg(y_input, i_params, r_params, &inputs),
-            &i_params,
-            &r_params,
-            0.01,
-            0.0,
-            1.0,
-        )?;
+            let y_crit = newtons_method(
+                |y_input, i_params, r_params| gps_egg(y_input, i_params, r_params, &inputs),
+                &i_params,
+                &r_params,
+                0.01,
+                0.0,
+                1.0,
+            )?;
 
-        // (3) Find y_max and y_min, then use those to find s_far and s_near
-        //------------------------------------------------------------------------
-        let mut s_far_array = vec![[0.0; 3]; globals.num_x];
-        let mut s_near_array = vec![[0.0; 3]; globals.num_x];
+            // (3) Find y_max and y_min, then use those to find s_far and s_near
+            //------------------------------------------------------------------------
+            let mut s_far_array = vec![[0.0; 3]; globals.num_x];
+            let mut s_near_array = vec![[0.0; 3]; globals.num_x];
 
-        for j_x in 0..globals.num_x {
-            // First point of each triplet is a repeat of the last point of the
-            //   previous triplet, except for the first triplet.  For the first
-            //   triplet, k_int = 1 ==> x = 0 and we set s_far and s_near by
-            //   hand: s_far is set to a small positive number so we don't have to
-            //   pass through the origin, and s_near is 1 because we're on the jet
-            //   axis and so R_FS = R_LOS
-            if j_x == 0 {
-                s_far_array[j_x][0] = 1.0e-3;
-                s_near_array[j_x][0] = 1.0;
-            } else {
-                s_far_array[j_x][0] = s_far_array[j_x - 1][2];
-                s_near_array[j_x][0] = s_near_array[j_x - 1][2];
-            }
-
-            for k_int in 1..=2 {
-                // The third point of the final Simpson's rule interval does not need
-                //   to be computed: since x = 1, s_near = s_far, and both can be
-                //   set analytically
-                if k_int == 2 && j_x == globals.num_x - 1 {
-                    s_far_array[j_x][k_int] = (eq_a22_split.powi(2) - r_perp_max.powi(2)).sqrt();
-                    s_near_array[j_x][k_int] = (eq_a22_split.powi(2) - r_perp_max.powi(2)).sqrt();
-                    continue;
+            for j_x in 0..globals.num_x {
+                // First point of each triplet is a repeat of the last point of the
+                //   previous triplet, except for the first triplet.  For the first
+                //   triplet, k_int = 1 ==> x = 0 and we set s_far and s_near by
+                //   hand: s_far is set to a small positive number so we don't have to
+                //   pass through the origin, and s_near is 1 because we're on the jet
+                //   axis and so R_FS = R_LOS
+                if j_x == 0 {
+                    s_far_array[j_x][0] = 1.0e-3;
+                    s_near_array[j_x][0] = 1.0;
+                } else {
+                    s_far_array[j_x][0] = s_far_array[j_x - 1][2];
+                    s_near_array[j_x][0] = s_near_array[j_x - 1][2];
                 }
 
-                // Set y_max and y_min, then s_max and s_min, for this Simpson's rule
-                //   interval
-                //--------------------------------------------------------------------
-                // y_max
-                i_params[0] = 3; // To compute y for fixed R_perp/R_LOS
-                i_params[1] = 1; // For y_max, we are guaranteed to be at positive mu
-                r_params[0] = globals.x_array[j_x][k_int] * r_perp_max; // x*R_perp_max = R_perp
-                r_params[1] = gam_los;
+                for k_int in 1..=2 {
+                    // The third point of the final Simpson's rule interval does not need
+                    //   to be computed: since x = 1, s_near = s_far, and both can be
+                    //   set analytically
+                    if k_int == 2 && j_x == globals.num_x - 1 {
+                        let s_edge = (eq_a22_split.powi(2) - r_perp_max.powi(2)).sqrt();
+                        s_far_array[j_x][k_int] = s_edge;
+                        s_near_array[j_x][k_int] = s_edge;
+                        continue;
+                    }
 
-                let y_max = newtons_method(
-                    |y_input, i_params, r_params| gps_egg(y_input, i_params, r_params, &inputs),
-                    &i_params,
-                    &r_params,
-                    0.5 * (eq_a22_split + 1.0),
-                    eq_a22_split,
-                    1.0,
-                )?;
+                    // Set y_max and y_min, then s_max and s_min, for this Simpson's rule
+                    //   interval
+                    //--------------------------------------------------------------------
+                    // y_max
+                    i_params[0] = 3; // To compute y for fixed R_perp/R_LOS
+                    i_params[1] = 1; // For y_max, we are guaranteed to be at positive mu
+                    r_params[0] = globals.x_array[j_x][k_int] * r_perp_max; // x*R_perp_max = R_perp
+                    r_params[1] = gam_los;
 
-                // For y_min, there is a chance that mu could be negative.  The cutoff
-                //   is if y < y_crit
-                let y_min = if r_params[0] < y_crit {
-                    i_params[1] = -1;
-
-                    // Note that r_params(1) is the minimum allowed value for y, since
-                    //   that would mean y is entirely perpendicular to the shock
-                    newtons_method(
+                    let y_max = newtons_method(
                         |y_input, i_params, r_params| gps_egg(y_input, i_params, r_params, &inputs),
                         &i_params,
                         &r_params,
-                        0.8 * r_params[0] + 0.2 * y_crit,
-                        r_params[0],
-                        y_crit,
-                    )?
-                } else {
-                    i_params[1] = 1;
-
-                    newtons_method(
-                        |y_input, i_params, r_params| gps_egg(y_input, i_params, r_params, &inputs),
-                        &i_params,
-                        &r_params,
-                        r_params[0],
-                        r_params[0],
+                        0.5 * (eq_a22_split + 1.0),
                         eq_a22_split,
-                    )?
+                        1.0,
+                    )?;
+
+                    // For y_min, there is a chance that mu could be negative.  The cutoff
+                    //   is if y < y_crit
+                    let y_min = if r_params[0] < y_crit {
+                        i_params[1] = -1;
+
+                        // Note that r_params(1) is the minimum allowed value for y, since
+                        //   that would mean y is entirely perpendicular to the shock
+                        newtons_method(
+                            |y_input, i_params, r_params| {
+                                gps_egg(y_input, i_params, r_params, &inputs)
+                            },
+                            &i_params,
+                            &r_params,
+                            0.8 * r_params[0] + 0.2 * y_crit,
+                            r_params[0],
+                            y_crit,
+                        )?
+                    } else {
+                        i_params[1] = 1;
+
+                        newtons_method(
+                            |y_input, i_params, r_params| {
+                                gps_egg(y_input, i_params, r_params, &inputs)
+                            },
+                            &i_params,
+                            &r_params,
+                            r_params[0],
+                            r_params[0],
+                            eq_a22_split,
+                        )?
+                    };
+
+                    // Convert y_min and y_max into s_far and s_near, locations parallel
+                    //   to the shock axis.  Reuse i_params(2) for sign of s_far, and
+                    //   r_params(1) for both s's, rather than creating new variables
+                    let s_far = i_params[1] as f64 * (y_min.powi(2) - r_params[0].powi(2)).sqrt();
+                    let s_near = (y_max.powi(2) - r_params[0].powi(2)).sqrt();
+
+                    // Save the values to be used later (either in the radiative transfer
+                    //   calculation or to be written to file)
+                    s_far_array[j_x][k_int] = s_far;
+                    s_near_array[j_x][k_int] = s_near;
+                } // loop over three points for this Simpson's rule interval
+            } // loop over Simpson's rule intervals
+
+            //------------------------------------------------------------------------
+            // s_far and s_near computed
+            //------------------------------------------------------------------------
+
+            //------------------------------------------------------------------------
+            // Integrate emission over solid angle for this time step in two stages:
+            //   (1) Evaluate the radiative transfer equation for the three values of
+            //     x for this Simpson's rule interval
+            //   (2) Use Simpson's rule to update F_nu based on the values of I_nu
+            //     computed in step 1
+            //------------------------------------------------------------------------
+            let mut f_nu = vec![1.0e-99; globals.num_ph];
+            let mut nu_fnu = vec![1.0e-99; globals.num_ph];
+
+            let mut integrand_hi = vec![1.0e-99; globals.num_ph];
+            let mut x_hi = 0.0;
+
+            for j_x in 0..globals.num_x {
+                // (1a) As before, the first point of the interval gets special
+                //   treatment.  If it's the first interval, the integrand of the F_nu
+                //   integral is identically 0 since x = 0.  If it's any other interval,
+                //   the first point's integrand is the final point's integrand from the
+                //   previous integral
+                //----------------------------------------------------------------------
+                let (integrand_lo, x_lo) = if j_x == 0 {
+                    (vec![1.0e-99; globals.num_ph], globals.x_array[j_x][0])
+                } else {
+                    (integrand_hi.clone(), x_hi)
                 };
 
-                // Convert y_min and y_max into s_far and s_near, locations parallel
-                //   to the shock axis.  Reuse i_params(2) for sign of s_far, and
-                //   r_params(1) for both s's, rather than creating new variables
-                let s_far = i_params[1] as f64 * (y_min.powi(2) - r_params[0].powi(2)).sqrt();
-                let s_near = (y_max.powi(2) - r_params[0].powi(2)).sqrt();
+                // (1b) Evaluate the radiative transfer equation at the midpoint of
+                //   this interval
+                //----------------------------------------------------------------------
 
-                // Save the values to be used later (either in the radiative transfer
-                //   calculation or to be written to file)
-                s_far_array[j_x][k_int] = s_far;
-                s_near_array[j_x][k_int] = s_near;
-            } // loop over three points for this Simpson's rule interval
-        } // loop over Simpson's rule intervals
-
-        //------------------------------------------------------------------------
-        // s_far and s_near computed
-        //------------------------------------------------------------------------
-
-        //------------------------------------------------------------------------
-        // Integrate emission over solid angle for this time step in two stages:
-        //   (1) Evaluate the radiative transfer equation for the three values of
-        //     x for this Simpson's rule interval
-        //   (2) Use Simpson's rule to update F_nu based on the values of I_nu
-        //     computed in step 1
-        //------------------------------------------------------------------------
-        let mut f_nu = vec![1.0e-99; globals.num_ph];
-        let mut nu_fnu = vec![1.0e-99; globals.num_ph];
-
-        let mut integrand_hi = vec![1.0e-99; globals.num_ph];
-        let mut x_hi = 0.0;
-
-        for j_x in 0..globals.num_x {
-            // (1a) As before, the first point of the interval gets special
-            //   treatment.  If it's the first interval, the integrand of the F_nu
-            //   integral is identically 0 since x = 0.  If it's any other interval,
-            //   the first point's integrand is the final point's integrand from the
-            //   previous integral
-            //----------------------------------------------------------------------
-            let (integrand_lo, x_lo) = if j_x == 0 {
-                (vec![1.0e-99; globals.num_ph], globals.x_array[j_x][0])
-            } else {
-                (integrand_hi.clone(), x_hi)
-            };
-
-            // (1b) Evaluate the radiative transfer equation at the midpoint of
-            //   this interval
-            //----------------------------------------------------------------------
-
-            // Initialize input and output values for specific intensity
-            let i_nu_in = vec![1.0e-99; globals.num_ph];
-
-            // Set the parameters to be passed to rad_transfer_diffeq
-            i_params[0] = i_tm as i32;
-            i_params[1] = j_x as i32;
-            i_params[2] = 0;
-            i_params[3] = 0;
-            i_params[4] = 1; // on-axis
-            i_params[5] = 0;
-            i_params[6] = 0;
-
-            r_params[0] = globals.x_array[j_x][1] * r_perp_max;
-            r_params[1] = r_perp_max;
-            r_params[2] = s_far_array[j_x][1];
-            r_params[3] = s_near_array[j_x][1];
-            r_params[4] = 0.0;
-            r_params[5] = 0.0;
-            r_params[6] = 0.0;
-
-            let s_far = s_far_array[j_x][1];
-            let s_near = s_near_array[j_x][1];
-
-            // Evaluate the ODE
-            let i_nu_out = bw_euler_stepper(
-                |s, n_phot, jnu, alpha, r_params, i_params| {
-                    rad_transfer_diffeq(RadTransferInput {
-                        s,
-                        n_phot,
-                        jnu,
-                        alpha,
-                        r_params,
-                        i_params,
-                        inputs: &inputs,
-                        globals: &globals,
-                    })
-                    .expect("rad_transfer_diffeq failed");
-                },
-                s_far,
-                s_near,
-                &i_nu_in,
-                &r_params,
-                &i_params,
-                &globals,
-            );
-
-            let integrand_mid: Vec<f64> = i_nu_out
-                .iter()
-                .map(|value| globals.x_array[j_x][1] * value)
-                .collect();
-
-            // (1c) Evaluate the radiative transfer equation at the upper end of
-            //   this interval--unless j_x = num_x, in which case the integrand is
-            //   0 because the limits of integration are equal in the radiative
-            //   transfer equation.
-            //----------------------------------------------------------------------
-            if j_x == globals.num_x - 1 {
-                integrand_hi = vec![1.0e-99; globals.num_ph];
-                x_hi = globals.x_array[j_x][2];
-            } else {
                 // Initialize input and output values for specific intensity
                 let i_nu_in = vec![1.0e-99; globals.num_ph];
 
@@ -834,16 +790,16 @@ pub fn run() -> Result<(), SaaError> {
                 i_params[5] = 0;
                 i_params[6] = 0;
 
-                r_params[0] = globals.x_array[j_x][2] * r_perp_max;
+                r_params[0] = globals.x_array[j_x][1] * r_perp_max;
                 r_params[1] = r_perp_max;
-                r_params[2] = s_far_array[j_x][2];
-                r_params[3] = s_near_array[j_x][2];
+                r_params[2] = s_far_array[j_x][1];
+                r_params[3] = s_near_array[j_x][1];
                 r_params[4] = 0.0;
                 r_params[5] = 0.0;
                 r_params[6] = 0.0;
 
-                let s_far = s_far_array[j_x][2];
-                let s_near = s_near_array[j_x][2];
+                let s_far = s_far_array[j_x][1];
+                let s_near = s_near_array[j_x][1];
 
                 // Evaluate the ODE
                 let i_nu_out = bw_euler_stepper(
@@ -868,55 +824,127 @@ pub fn run() -> Result<(), SaaError> {
                     &globals,
                 );
 
-                integrand_hi = i_nu_out
+                let integrand_mid: Vec<f64> = i_nu_out
                     .iter()
-                    .map(|value| globals.x_array[j_x][2] * value)
+                    .map(|value| globals.x_array[j_x][1] * value)
                     .collect();
-                x_hi = globals.x_array[j_x][2];
+
+                // (1c) Evaluate the radiative transfer equation at the upper end of
+                //   this interval--unless j_x = num_x, in which case the integrand is
+                //   0 because the limits of integration are equal in the radiative
+                //   transfer equation.
+                //----------------------------------------------------------------------
+                if j_x == globals.num_x - 1 {
+                    integrand_hi = vec![1.0e-99; globals.num_ph];
+                    x_hi = globals.x_array[j_x][2];
+                } else {
+                    // Initialize input and output values for specific intensity
+                    let i_nu_in = vec![1.0e-99; globals.num_ph];
+
+                    // Set the parameters to be passed to rad_transfer_diffeq
+                    i_params[0] = i_tm as i32;
+                    i_params[1] = j_x as i32;
+                    i_params[2] = 0;
+                    i_params[3] = 0;
+                    i_params[4] = 1; // on-axis
+                    i_params[5] = 0;
+                    i_params[6] = 0;
+
+                    r_params[0] = globals.x_array[j_x][2] * r_perp_max;
+                    r_params[1] = r_perp_max;
+                    r_params[2] = s_far_array[j_x][2];
+                    r_params[3] = s_near_array[j_x][2];
+                    r_params[4] = 0.0;
+                    r_params[5] = 0.0;
+                    r_params[6] = 0.0;
+
+                    let s_far = s_far_array[j_x][2];
+                    let s_near = s_near_array[j_x][2];
+
+                    // Evaluate the ODE
+                    let i_nu_out = bw_euler_stepper(
+                        |s, n_phot, jnu, alpha, r_params, i_params| {
+                            rad_transfer_diffeq(RadTransferInput {
+                                s,
+                                n_phot,
+                                jnu,
+                                alpha,
+                                r_params,
+                                i_params,
+                                inputs: &inputs,
+                                globals: &globals,
+                            })
+                            .expect("rad_transfer_diffeq failed");
+                        },
+                        s_far,
+                        s_near,
+                        &i_nu_in,
+                        &r_params,
+                        &i_params,
+                        &globals,
+                    );
+
+                    integrand_hi = i_nu_out
+                        .iter()
+                        .map(|value| globals.x_array[j_x][2] * value)
+                        .collect();
+                    x_hi = globals.x_array[j_x][2];
+                }
+
+                // (2) Update F_nu using Simpson's rule
+                //----------------------------------------------------------------------
+                for m_ph in 0..globals.num_ph {
+                    f_nu[m_ph] += (x_hi - x_lo) / 6.0
+                        * (integrand_lo[m_ph] + 4.0 * integrand_mid[m_ph] + integrand_hi[m_ph]);
+                }
             }
 
-            // (2) Update F_nu using Simpson's rule
-            //----------------------------------------------------------------------
+            //------------------------------------------------------------------------
+            // Integration of F_nu complete
+            //------------------------------------------------------------------------
+
+            //------------------------------------------------------------------------
+            // Include numerical prefactor of integral (taking it from explosion frame
+            //   to observer frame, including cosmological redshift), convert it to
+            //   nu*Fnu, and write it to file
+            //------------------------------------------------------------------------
+
+            // Include prefactor, convert to nu*F_nu and to Jy
             for m_ph in 0..globals.num_ph {
-                f_nu[m_ph] += (x_hi - x_lo) / 6.0
-                    * (integrand_lo[m_ph] + 4.0 * integrand_mid[m_ph] + integrand_hi[m_ph]);
-            }
-        }
+                f_nu[m_ph] *= 2.0
+                    * PII
+                    * (1.0 + inputs.redshift)
+                    * (r_perp_max * r_los / inputs.dist_lum).powi(2);
 
-        //------------------------------------------------------------------------
-        // Integration of F_nu complete
-        //------------------------------------------------------------------------
+                nu_fnu[m_ph] = f_nu[m_ph] * globals.phot_en_cgs[m_ph] / XH;
 
-        //------------------------------------------------------------------------
-        // Include numerical prefactor of integral (taking it from explosion frame
-        //   to observer frame, including cosmological redshift), convert it to
-        //   nu*Fnu, and write it to file
-        //------------------------------------------------------------------------
+                if nu_fnu[m_ph] < 1.0e-55 {
+                    nu_fnu[m_ph] = 1.0e-99;
+                }
 
-        // Include prefactor, convert to nu*F_nu and to Jy
-        for m_ph in 0..globals.num_ph {
-            f_nu[m_ph] *= 2.0
-                * PII
-                * (1.0 + inputs.redshift)
-                * (r_perp_max * r_los / inputs.dist_lum).powi(2);
+                f_nu[m_ph] *= 1.0e23;
 
-            nu_fnu[m_ph] = f_nu[m_ph] * globals.phot_en_cgs[m_ph] / XH;
+                if f_nu[m_ph] < 1.0e-55 {
+                    f_nu[m_ph] = 1.0e-99;
+                }
 
-            if nu_fnu[m_ph] < 1.0e-55 {
-                nu_fnu[m_ph] = 1.0e-99;
+                // Transmittance is never used in the saa.f90.
+                // f_nu[m_ph] *= transmittance[m_ph];
+                // nu_fnu[m_ph] *= transmittance[m_ph];
             }
 
-            f_nu[m_ph] *= 1.0e23;
+            Ok(TimeStepResult {
+                i_tm,
+                gam_los,
+                f_nu,
+                nu_fnu,
+            })
+        })
+        .collect::<Result<Vec<_>, SaaError>>()?;
 
-            if f_nu[m_ph] < 1.0e-55 {
-                f_nu[m_ph] = 1.0e-99;
-            }
+    results.sort_by_key(|result| result.i_tm);
 
-            // Transmittance is never used in the saa.f90.
-            // f_nu[m_ph] *= transmittance[m_ph];
-            // nu_fnu[m_ph] *= transmittance[m_ph];
-        }
-
+    for result in results {
         // Pre-write timing call
         //------------------------------------------------------------------------
         let wall_time = start.elapsed().as_secs_f64();
@@ -925,19 +953,19 @@ pub fn run() -> Result<(), SaaError> {
             println!(
                 "{:8.2e} sec:  Waiting to write.  Rad transfer complete for i_tm = {}",
                 wall_time,
-                i_tm + 1
+                result.i_tm + 1
             );
         }
 
-        writeln!(
-            out_writer,
-            "{:8.2e} sec:  Waiting to write.  Rad transfer complete for i_tm = {}",
-            wall_time,
-            i_tm + 1
-        )?;
-
         // Write the identifier for this time step to the output file
-        write_flux_tables(&mut sed_writer, i_tm, &f_nu, &nu_fnu, &globals, true)?;
+        write_flux_tables(
+            &mut sed_writer,
+            result.i_tm,
+            &result.f_nu,
+            &result.nu_fnu,
+            &globals,
+            true,
+        )?;
 
         //------------------------------------------------------------------------
         // nu*Fnu written to file
@@ -950,9 +978,9 @@ pub fn run() -> Result<(), SaaError> {
         if inputs.do_progress_log {
             println!(
                 "Rad transfer complete for i_tm = {}; Gam_0 = {:6.2}; t_obs = {:10.3e}",
-                i_tm + 1,
-                gam_los,
-                globals.t_obs_array[i_tm]
+                result.i_tm + 1,
+                result.gam_los,
+                globals.t_obs_array[result.i_tm]
             );
         }
 
@@ -960,9 +988,9 @@ pub fn run() -> Result<(), SaaError> {
             out_writer,
             "{:8.2e} sec:  Rad transfer complete for i_tm = {}; Gam_0 = {:6.2}; t_obs = {:10.3e}",
             wall_time,
-            i_tm + 1,
-            gam_los,
-            globals.t_obs_array[i_tm]
+            result.i_tm + 1,
+            result.gam_los,
+            globals.t_obs_array[result.i_tm]
         )?;
     }
 

@@ -60,7 +60,7 @@ pub struct Globals {
     pub num_x: usize,
 
     /// Locations of lines of sight between 0 and 1
-    pub x_array: [[f64; 15]; 3],
+    pub x_array: Vec<[f64; 3]>,
 
     pub x_array_1d: [f64; 50],
 }
@@ -98,7 +98,7 @@ impl Default for Globals {
             em_size_array: vec![0.0; N_PH],
 
             num_x: 0,
-            x_array: [[0.0; 15]; 3],
+            x_array: vec![[0.0; 3]; 15],
             x_array_1d: [0.0; 50],
         }
     }
